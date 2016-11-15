@@ -36,7 +36,7 @@ module.exports = new bla.ApiMethod({
 
         return Promise.all(methods.map(m => api.exec(m.method, m.params, request, api)))
             .then(
-                response => response.map(data => responseFormatter.formatResponse(data))
+                response => response.map(data => responseFormatter.formatResponse(data)),
                 reject => responseFormatter.formatError(reject)
             );
     }
