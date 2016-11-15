@@ -32,18 +32,12 @@ module.exports = new bla.ApiMethod({
         }
     },
     action: function (params, request, api) {
-        return vow.allResolved(params.methods.map(function (method) {
-            return api.exec(method.method, method.params, request, api);
-        })).then(function (response) {
-            return response.map(function (promise) {
-                var data = promise.valueOf();
+        const methods = params.methods;
 
-                if (promise.isFulfilled()) {
-                    return responseFormatter.formatResponse(data);
-                }
-
-                return responseFormatter.formatError(data);
-            });
-        });
+        return Promise.all(methods.map(m => api.exec(m.method, m.params, request, api)))
+            .then(
+                response => response.map(data => responseFormatter.formatResponse(data))
+                reject => responseFormatter.formatError(reject)
+            );
     }
 });
