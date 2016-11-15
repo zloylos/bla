@@ -33,11 +33,41 @@ module.exports = new bla.ApiMethod({
     },
     action: function (params, request, api) {
         const methods = params.methods;
+        const resolved = [];
+        const resolvedData = [];
+        const failed = [];
+        const failedReasons = [];
 
-        return Promise.all(methods.map(m => api.exec(m.method, m.params, request, api)))
+        const promises = methods.map(m =>
+            api.exec(m.method, m.params, request, api)
+                .then(
+                    resolve => {
+                        resolved.push(m);
+                        resolvedData.push(resolve);
+                        return resolve;
+                    },
+                    reject => {
+                        failed.push(m);
+                        failedReasons.push(reject);
+                        return reject;
+                    }
+                )
+        );
+
+        return Promise.all(promises)
             .then(
                 response => response.map(data => responseFormatter.formatResponse(data)),
-                reject => responseFormatter.formatError(reject)
+                reject => {
+                    return Promise.all(methods.map(m => {
+                        const failedIndex = failed.indexOf(m);
+                        if (failedIndex > -1) {
+                            return Promise.resolve(responseFormatter.formatError(failedReasons[failedIndex]));
+                        } else {
+                            const resolvedIndex = resolved.indexOf(m);
+                            return Promise.resolve(responseFormatter.formatResponse(resolvedData[resolvedIndex]));
+                        }
+                    }));
+                }
             );
     }
 });
